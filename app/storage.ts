@@ -1,12 +1,18 @@
+'use client'
+
 import type {
   TransferedAggrBurnRecord,
   UntransferedAggrBurnRecord,
 } from './csv-types'
 
 const TRANSFER_RECORD = '@@transfer_record'
+let storage: Storage | undefined
+if (typeof window !== 'undefined') {
+  storage = window.localStorage
+}
 
 export function getCacheTransferRecord() {
-  const json = window.localStorage.getItem(TRANSFER_RECORD)
+  const json = storage?.getItem(TRANSFER_RECORD)
   if (!json) return undefined
   try {
     return JSON.parse(json) as TransferedAggrBurnRecord[]
@@ -16,7 +22,7 @@ export function getCacheTransferRecord() {
 }
 
 export function saveCacheTransferRecord(records: UntransferedAggrBurnRecord[]) {
-  window.localStorage.setItem(TRANSFER_RECORD, JSON.stringify(records))
+  storage?.setItem(TRANSFER_RECORD, JSON.stringify(records))
 }
 
 export function updateCacheTransferRecord(
