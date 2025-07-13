@@ -26,7 +26,11 @@ import {
   transferedColumns,
   UntransferedAggrBurnRecord,
 } from './csv-types'
-import { getCacheTransferRecord, saveCacheTransferRecord, updateCacheTransferRecord } from './storage'
+import {
+  getCacheTransferRecord,
+  saveCacheTransferRecord,
+  updateCacheTransferRecord,
+} from './storage'
 import tokens from './tokens.json'
 import { config } from './wagmi'
 
@@ -98,7 +102,9 @@ const confirmationsTimeout = Number(
 )
 
 export default function Home() {
-  const [data, setData] = useState<TransferedAggrBurnRecord[] | undefined>(getCacheTransferRecord())
+  const [data, setData] = useState<TransferedAggrBurnRecord[] | undefined>(
+    getCacheTransferRecord(),
+  )
   const [error, setError] = useState<string>('')
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -141,7 +147,7 @@ export default function Home() {
           if (oldItem.confirmation && oldItem.confirmation >= waitConfirmations)
             continue
         }
-        const txHash = oldItem.txHash ?? await transfer(oldItem)
+        const txHash = oldItem.txHash ?? (await transfer(oldItem))
         const newItem: TransferedAggrBurnRecord = {
           ...oldItem,
           txHash,
@@ -223,7 +229,7 @@ export default function Home() {
                 ? (index) =>
                     index <= lastSuccessIndex
                       ? 'bg-green-600 text-white hover:bg-green-700'
-                      : (index === lastSuccessIndex + 1 && isTransfering)
+                      : index === lastSuccessIndex + 1 && isTransfering
                         ? 'processing-background text-white hover:bg-processing-background'
                         : ''
                 : undefined
@@ -251,7 +257,11 @@ export default function Home() {
             <p className="mt-8 text-red-500">{transferError}</p>
           )}
           <div className="mt-8 flex justify-center gap-8">
-            <Button disabled={isTransfering} variant="outline" onClick={() => setData(undefined)}>
+            <Button
+              disabled={isTransfering}
+              variant="outline"
+              onClick={() => setData(undefined)}
+            >
               重新上传
             </Button>
             <Button disabled={isTransfering} onClick={startTransfer}>
@@ -261,6 +271,26 @@ export default function Home() {
                   ? '继续处理'
                   : '开始处理'}
             </Button>
+            {
+              lastSuccessIndex !== undefined && !isTransfering && (
+                <Button
+                  disabled={isTransfering}
+                  onClick={() => {
+                    const csvData = papa.unparse(data.map(({ confirmation, ...v}) => v), { header: true })
+                    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' })
+                    const link = document.createElement('a')
+                    link.href = URL.createObjectURL(blob)
+                    link.download = 'transfer-result.csv'
+                    link.click()
+                    setTimeout(() => {
+                      URL.revokeObjectURL(link.href)
+                    }, 100)
+                  }}
+                >
+                  下载结果
+                </Button>
+              )
+            }
           </div>
         </>
       )}
