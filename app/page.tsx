@@ -117,7 +117,13 @@ export default function Home() {
           setError(results.errors[0].message)
           return
         }
-        setData(results.data)
+        setData(
+          results.data.map((v) => ({
+            ...v,
+            txHash: undefined,
+            confirmation: undefined,
+          })),
+        )
       },
     })
   }, [])
@@ -276,30 +282,32 @@ export default function Home() {
                   ? '继续处理'
                   : '开始处理'}
             </Button>
-            {lastSuccessIndex !== undefined && !isTransfering && (
-              <Button
-                disabled={isTransfering}
-                onClick={() => {
-                  const csvData = papa.unparse(
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    data.map(({ confirmation: _, ...v }) => v),
-                    { header: true },
-                  )
-                  const blob = new Blob([csvData], {
-                    type: 'text/csv;charset=utf-8;',
-                  })
-                  const link = document.createElement('a')
-                  link.href = URL.createObjectURL(blob)
-                  link.download = 'transfer-result.csv'
-                  link.click()
-                  setTimeout(() => {
-                    URL.revokeObjectURL(link.href)
-                  }, 100)
-                }}
-              >
-                下载结果
-              </Button>
-            )}
+            {lastSuccessIndex !== undefined &&
+              lastSuccessIndex !== -1 &&
+              !isTransfering && (
+                <Button
+                  disabled={isTransfering}
+                  onClick={() => {
+                    const csvData = papa.unparse(
+                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                      data.map(({ confirmation: _, ...v }) => v),
+                      { header: true },
+                    )
+                    const blob = new Blob([csvData], {
+                      type: 'text/csv;charset=utf-8;',
+                    })
+                    const link = document.createElement('a')
+                    link.href = URL.createObjectURL(blob)
+                    link.download = 'transfer-result.csv'
+                    link.click()
+                    setTimeout(() => {
+                      URL.revokeObjectURL(link.href)
+                    }, 100)
+                  }}
+                >
+                  下载结果
+                </Button>
+              )}
           </div>
         </>
       )}
