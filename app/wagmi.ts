@@ -7,6 +7,6 @@ export const config = getDefaultConfig({
   chains:
     process.env.NEXT_PUBLIC_IS_MAINNET === 'true'
       ? [mainnet, bsc]
-      : [sepolia, bscTestnet, bsc],
+      : [sepolia, bscTestnet],
   ssr: true,
 })
