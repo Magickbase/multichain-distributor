@@ -276,6 +276,7 @@ export default function Home() {
                 disabled={isTransfering}
                 onClick={() => {
                   const csvData = papa.unparse(
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     data.map(({ confirmation: _, ...v }) => v),
                     { header: true },
                   )
