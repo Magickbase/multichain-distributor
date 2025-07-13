@@ -7,6 +7,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { erc20Abi } from 'viem'
 import { bsc, bscTestnet, mainnet, sepolia } from 'viem/chains'
+import { useAccount } from 'wagmi'
 import {
   getTransactionConfirmations,
   sendTransaction,
@@ -213,6 +214,7 @@ export default function Home() {
       ),
     [data],
   )
+  const { address } = useAccount()
 
   return (
     <div className="m-auto w-full p-12 md:w-[600px] lg:w-[800px] xl:w-[1000px]">
@@ -264,7 +266,10 @@ export default function Home() {
             >
               重新上传
             </Button>
-            <Button disabled={isTransfering} onClick={startTransfer}>
+            <Button
+              disabled={isTransfering || !address}
+              onClick={startTransfer}
+            >
               {isTransfering
                 ? '处理中'
                 : data.some((v) => v.txHash)
