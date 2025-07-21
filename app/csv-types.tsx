@@ -13,15 +13,15 @@ export type NativeTokenAddress = typeof NATIVE_TOKEN
 type EVMAddress = `0x${string}`
 
 export type UntransferedAggrBurnRecord = {
-  network: 'Ethereum' | 'BSC'
-  token: EVMAddress | NativeTokenAddress
-  receiver: EVMAddress
+  source: 'Ethereum' | 'BSC'
+  evmTokenAddress: EVMAddress | NativeTokenAddress
+  evmReceiverAddress: EVMAddress
   amount: string
   formattedAmount: string
 }
 
 export type TransferedAggrBurnRecord = UntransferedAggrBurnRecord & {
-  txHash?: `0x${string}`
+  transferTxHash?: `0x${string}`
   confirmation?:
     | 0
     | 1
@@ -56,7 +56,7 @@ const bscScanUrl = isMainnet
   ? 'https://bscscan.com/'
   : 'https://testnet.bscscan.com/'
 
-export function getScanUrl(network: UntransferedAggrBurnRecord['network']) {
+export function getScanUrl(network: UntransferedAggrBurnRecord['source']) {
   if (network === 'Ethereum') return ETHScanUrl
   if (network === 'BSC') return bscScanUrl
 }
@@ -68,17 +68,14 @@ const nativeTokenSymbol = {
 
 export const columns: ColumnDef<UntransferedAggrBurnRecord>[] = [
   {
-    accessorKey: 'network',
-    header: 'network',
-  },
-  {
-    accessorKey: 'token',
-    header: 'token',
+    accessorKey: 'evmTokenAddress',
+    header: 'evmTokenAddress',
     cell: (record) => {
-      const token = record.getValue() as UntransferedAggrBurnRecord['token']
+      const token =
+        record.getValue() as UntransferedAggrBurnRecord['evmTokenAddress']
       const network = record.row.getValue(
-        'network',
-      ) as UntransferedAggrBurnRecord['network']
+        'source',
+      ) as UntransferedAggrBurnRecord['source']
       const url =
         token !== NATIVE_TOKEN
           ? `${getScanUrl(network)}token/${token}`
@@ -104,8 +101,8 @@ export const columns: ColumnDef<UntransferedAggrBurnRecord>[] = [
     },
   },
   {
-    accessorKey: 'receiver',
-    header: 'receiver',
+    accessorKey: 'evmReceiverAddress',
+    header: 'evmReceiverAddress',
     cell: (props) => {
       const receiver = props.getValue() as string
       return (
@@ -117,6 +114,10 @@ export const columns: ColumnDef<UntransferedAggrBurnRecord>[] = [
         </Tooltip>
       )
     },
+  },
+  {
+    accessorKey: 'source',
+    header: 'source',
   },
   {
     accessorKey: 'amount',
@@ -131,8 +132,8 @@ export const columns: ColumnDef<UntransferedAggrBurnRecord>[] = [
 export const transferedColumns: ColumnDef<TransferedAggrBurnRecord>[] = [
   ...columns,
   {
-    accessorKey: 'txHash',
-    header: 'txHash',
+    accessorKey: 'transferTxHash',
+    header: 'transferTxHash',
     cell: (props) => {
       const txHash = props.getValue() as string
       if (!txHash) return null
@@ -140,7 +141,7 @@ export const transferedColumns: ColumnDef<TransferedAggrBurnRecord>[] = [
         <Tooltip>
           <TooltipTrigger asChild>
             <Link
-              href={`${getScanUrl(props.row.getValue('network'))}tx/${txHash}`}
+              href={`${getScanUrl(props.row.getValue('source'))}tx/${txHash}`}
               target="_blank"
             >
               {trunkHash(txHash)}

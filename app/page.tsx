@@ -42,16 +42,16 @@ function CsvTemplate() {
       data={
         [
           {
-            network: 'Ethereum',
-            token: '0x0000...000000',
-            receiver: '0xF8B1...86A05a',
+            source: 'Ethereum',
+            evmTokenAddress: '0x0000...000000',
+            evmReceiverAddress: '0xF8B1...86A05a',
             amount: '1230000000000000000',
             formattedAmount: '1.23',
           },
           {
-            network: 'BSC',
-            token: '0x0000...000000',
-            receiver: '0xF8B1...86A05a',
+            source: 'BSC',
+            evmTokenAddress: '0x0000...000000',
+            evmReceiverAddress: '0xF8B1...86A05a',
             amount: '1230000000000000000',
             formattedAmount: '1.23',
           },
@@ -63,37 +63,40 @@ function CsvTemplate() {
 
 const isMainnet = process.env.NEXT_PUBLIC_IS_MAINNET === 'true'
 
-function getChainId(network: UntransferedAggrBurnRecord['network']) {
+function getChainId(network: UntransferedAggrBurnRecord['source']) {
   if (network === 'Ethereum') return isMainnet ? mainnet.id : sepolia.id
   if (network === 'BSC') return isMainnet ? bsc.id : bscTestnet.id
 }
 
 function transfer(sendInfo: UntransferedAggrBurnRecord) {
-  const token = tokens.find((token) => token.address === sendInfo.token)
-  assert(token, `${sendInfo.token} 不存在, 请检查`)
+  const token = tokens.find(
+    (token) => token.address === sendInfo.evmTokenAddress,
+  )
+  assert(token, `${sendInfo.evmTokenAddress} 不存在, 请检查`)
+  const formattedAmount = sendInfo.formattedAmount.split(' ')[0]
   assert(
-    BigNumber(sendInfo.formattedAmount).isGreaterThan(0),
-    `${sendInfo.token} 数量必须大于 0`,
+    BigNumber(formattedAmount).isGreaterThan(0),
+    `${sendInfo.evmTokenAddress} 数量必须大于 0`,
   )
   assert(
     BigNumber(sendInfo.amount)
       .div(10 ** token.decimal)
-      .isEqualTo(sendInfo.formattedAmount),
-    `${sendInfo.token} amount,formattedAmount ${sendInfo.amount},${sendInfo.formattedAmount} 校验失败, 请检查`,
+      .isEqualTo(formattedAmount),
+    `${sendInfo.evmTokenAddress} amount,formattedAmount ${sendInfo.amount},${formattedAmount} 校验失败, 请检查`,
   )
-  if (sendInfo.token === NATIVE_TOKEN) {
+  if (sendInfo.evmTokenAddress === NATIVE_TOKEN) {
     return sendTransaction(config, {
-      to: sendInfo.receiver,
+      to: sendInfo.evmReceiverAddress,
       value: BigInt(sendInfo.amount),
-      chainId: getChainId(sendInfo.network),
+      chainId: getChainId(sendInfo.source),
     })
   }
   return writeContract(config, {
     abi: erc20Abi,
-    address: sendInfo.token,
+    address: sendInfo.evmTokenAddress,
     functionName: 'transfer',
-    args: [sendInfo.receiver, BigInt(sendInfo.amount)],
-    chainId: getChainId(sendInfo.network),
+    args: [sendInfo.evmReceiverAddress, BigInt(sendInfo.amount)],
+    chainId: getChainId(sendInfo.source),
   })
 }
 
@@ -148,16 +151,16 @@ export default function Home() {
     try {
       for (let index = 0; index < data.length; index++) {
         const oldItem = data[index]
-        const chainId = getChainId(oldItem.network)
+        const chainId = getChainId(oldItem.source)
         if (chainId) await switchChain(config, { chainId })
-        if (oldItem.txHash) {
+        if (oldItem.transferTxHash) {
           if (oldItem.confirmation && oldItem.confirmation >= waitConfirmations)
             continue
         }
-        const txHash = oldItem.txHash ?? (await transfer(oldItem))
+        const txHash = oldItem.transferTxHash || (await transfer(oldItem))
         const newItem: TransferedAggrBurnRecord = {
           ...oldItem,
-          txHash,
+          transferTxHash: txHash,
           confirmation: 0,
         }
         updateData(index, newItem)
@@ -184,7 +187,7 @@ export default function Home() {
           chainId,
           onReplaced(replace) {
             if (timeout) clearTimeout(timeout)
-            newItem.txHash = replace.transaction.hash
+            newItem.transferTxHash = replace.transaction.hash
             updateConfirmation(replace.transaction.hash)
           },
         })
@@ -216,7 +219,7 @@ export default function Home() {
   const lastSuccessIndex = useMemo(
     () =>
       data?.findLastIndex(
-        (v) => !!v.txHash && (v.confirmation ?? 0) >= waitConfirmations,
+        (v) => !!v.transferTxHash && (v.confirmation ?? 0) >= waitConfirmations,
       ),
     [data],
   )
@@ -278,7 +281,7 @@ export default function Home() {
             >
               {isTransfering
                 ? '处理中'
-                : data.some((v) => v.txHash)
+                : data.some((v) => v.transferTxHash)
                   ? '继续处理'
                   : '开始处理'}
             </Button>
