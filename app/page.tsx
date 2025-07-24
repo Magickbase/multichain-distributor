@@ -291,8 +291,13 @@ export default function Home() {
                   disabled={isTransfering}
                   onClick={() => {
                     const csvData = papa.unparse(
-                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                      data.map(({ confirmation: _, ...v }) => v),
+                      (
+                        data as (TransferedAggrBurnRecord & {
+                          txHash: string
+                        })[]
+                      )
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        .map(({ confirmation: _, txHash: __, ...v }) => v),
                       { header: true },
                     )
                     const blob = new Blob([csvData], {
