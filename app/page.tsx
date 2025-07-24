@@ -123,7 +123,6 @@ export default function Home() {
         setData(
           results.data.map((v) => ({
             ...v,
-            txHash: undefined,
             confirmation: undefined,
           })),
         )
